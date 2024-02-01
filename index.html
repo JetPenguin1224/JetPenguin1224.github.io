@@ -7,6 +7,9 @@
         const mxLoadStylesheets = false
    </script>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Binary Search Tree</title> 
+  <script type="text/javascript" src="https://www.unpkg.com/mxgraph/javascript/mxClient.min.js"></script>
      
 </head>
 <body>
@@ -18,7 +21,187 @@
     height: 100%;
   }
 </style>
-<div> hello world!</div>
+<div>
+  <h1>赤黒木シミュレーター</h1>
+  <p>赤黒木のシミュレーターです。<br>
+    「挿入」で値を挿入し、「ランダム」で10個のランダムな値を挿入します。</p>
+</div>
+<input type="number" id="input" value="" min="1" max = "999" >
+<button onclick="insert_button()">挿入</button>
+<button onclick="bst.sample_insert_random()">ランダム</button>
+<div id="container"></div>
+<script>
+    const container = document.getElementById('container')
+    const graph = new mxGraph(container)
+    const parent = graph.getDefaultParent()
+    
+    var vertexStyle = graph.stylesheet.getDefaultVertexStyle();
+    vertexStyle[mxConstants.STYLE_FONTCOLOR] = 'white';
+
+
+class Node {
+  constructor(value) {
+    this.value = value;
+    this.left = null;
+    this.right = null;
+    this.red = true;
+  }
+}
+
+class BinaryTree {
+  constructor() {
+    this.root = null;
+  }
+  insert(value) {
+    this.root = this._insert(this.root, value);
+    this.draw_tree();
+  }
+
+  rotate_right(node) {
+    const left = node.left;
+    node.left = left.right;
+    left.right = node;
+    return left;
+  }
+  rotate_left(node) {
+    const right = node.right;
+    node.right = right.left;
+    right.left = node;
+    return right;
+  }
+  resolve_red(node) {
+    if(this.is_red(node.left) && this.is_red(node.left.left)){
+      if(this.is_red(node.right)){
+        node.red = true;
+        node.left.red = false;
+        node.right.red = false;
+      }else{
+        node = this.rotate_right(node);
+        node.red = false;
+        node.right.red = true;
+      }
+    }else if(this.is_red(node.left) && this.is_red(node.left.right)){
+      if(this.is_red(node.right)){
+        node.red = true;
+        node.left.red = false;
+        node.right.red = false;
+      }else{
+        node.left = this.rotate_left(node.left);
+        node = this.rotate_right(node);
+        node.red = false;
+        node.right.red = true;
+      }
+    }else if(this.is_red(node.right) && this.is_red(node.right.left)){
+      if(this.is_red(node.left)){
+        node.red = true;
+        node.left.red = false;
+        node.right.red = false;
+      }else{
+        node.right = this.rotate_right(node.right);
+        node = this.rotate_left(node);
+        node.red = false;
+        node.left.red = true;
+      }
+    }else if(this.is_red(node.right) && this.is_red(node.right.right)){
+      if(this.is_red(node.left)){
+        node.red = true;
+        node.left.red = false;
+        node.right.red = false;
+      }else{
+        node = this.rotate_left(node);
+        node.red = false;
+        node.left.red = true;
+      }
+    }
+    return node;
+  }
+
+  _insert(root, value) {
+    root = this._insert_rec(root, value);
+    root.red = false;
+    return root;
+  }
+
+  _insert_rec(root, value) {
+    if (root === null) {
+      return new Node(value);
+    }
+    if (value < root.value){
+      root.left = this._insert_rec(root.left, value);
+    }else if (value > root.value){
+      root.right = this._insert_rec(root.right, value);
+    }
+    root = this.resolve_red(root);
+    return root;
+  }
+  print_tree() {
+    this._print_tree(this.root);
+  }
+  _print_tree(root) {
+    if (root === null) {
+      return;
+    }
+    this._print_tree(root.left);
+    document.querySelector( "input").value += root.value;
+    this._print_tree(root.right);
+  }
+  
+  draw_tree() {
+    graph.getModel().beginUpdate();
+    graph.removeCells(graph.getChildCells(parent));
+    this._draw_tree(this.root);
+    var layout = new mxHierarchicalLayout(graph);
+    layout.execute(parent);
+    graph.getModel().endUpdate();
+  }
+    _draw_tree(root) {
+        if(this.is_red(root)){
+            var v1 = graph.insertVertex(parent, null, String(root.value), null, null, 30, 30, 'fillColor=red');
+        }else{  
+            var v1 = graph.insertVertex(parent, null, String(root.value), null, null, 30, 30, 'fillColor=black');
+        }
+        if(root.left !== null){
+        var v2 = this._draw_tree(root.left);
+        graph.insertEdge(parent, null, null, v1, v2,null);
+        }
+        if(root.right !== null){
+        var v3 = this._draw_tree(root.right);
+        graph.insertEdge(parent, null, null, v1, v3,null);
+        }
+
+        return v1;
+
+    }
+    is_red(node) {
+        if (node === null) {
+            return false;
+        }
+        return node.red;
+    }
+    random_insert() {
+        this.insert(Math.floor(Math.random() * 100));
+    }
+    sample_insert_random() {
+        for (let i = 0; i < 10; i++) {
+            this.random_insert();
+        }
+    }
+    
+}
+
+// Sample Binary Search Tree
+const bst = new BinaryTree();
+//[1,2,3,4,5,6,7,8,9,10,11,12].forEach(value => bst.insert(value));
+
+function insert_button(){
+  var value = document.querySelector( "input").value;
+  if(value !== ''){
+    bst.insert(Number(value));
+  }
+  document.querySelector( "input").value = '';
+}
+
+</script>
 
 
 </body>
